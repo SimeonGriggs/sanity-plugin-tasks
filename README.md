@@ -2,7 +2,7 @@
 
 Task assignment and management for Sanity documents.
 
-Note: This is a Sanity Studio v3-exclusive plugin.
+Note: This is a proof-of-concept plugin for [Sanity Studio v3](https://beta.sanity.io/docs) exclusively.
 
 ![Task management interface in Studio](./img/sanity-plugin-tasks.png)
 

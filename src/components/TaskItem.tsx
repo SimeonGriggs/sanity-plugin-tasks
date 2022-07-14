@@ -58,7 +58,7 @@ export default function TaskItem(props: TaskItemProps) {
   // Update local state when props change (new task is saved)
   useEffect(() => {
     setTitle(props?.title ?? ``)
-    setUser(props?.user ?? ``)
+    setUser(props?.user ?? null)
   }, [props.user, props.title])
 
   const [mutating, setMutating] = useState(false)
