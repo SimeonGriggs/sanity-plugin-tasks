@@ -18,27 +18,29 @@ or
 yarn add sanity-plugin-tasks
 ```
 
-## Usage
+## Setup
 
 Add it as a plugin in sanity.config.ts (or .js):
 
-```js
+```ts
  import {createConfig} from 'sanity'
  import {tasks} from 'sanity-plugin-tasks'
 
  export const createConfig({
      // other config settings...
      plugins: [
-         tasks({})
+         tasks()
      ]
  })
 ```
+
+### View Pane
 
 This will only register the `sanity.taskGroup` schema type which will store user-assigned tasks for individual documents. The other components you'll need to enqueue yourself.
 
 In your Structure configuration, add the TaskView component as a View Pane. In the example below, we add it to any `article` type documents.
 
-```js
+```ts
 import {StructureResolver, DefaultDocumentNodeResolver} from 'sanity/desk'
 import {TaskView} from 'sanity-plugin-tasks'
 
@@ -53,9 +55,11 @@ export const defaultDocumentNode: DefaultDocumentNodeResolver = (S, {schemaType}
 }
 ```
 
+### Validation
+
 Now you can see and create Tasks alongside documents. But to enforce completion before publishing, you'll need to import a Validation rule.
 
-```js
+```ts
 // ./schema/article.ts
 import {defineType} from 'sanity'
 import {documentValidation} from 'sanity-plugin-tasks'
@@ -64,7 +68,7 @@ export default defineType({
   name: 'article',
   title: 'Article',
   type: 'document',
-  validation: (Rule: Rule) => [documentValidation],
+  validation: () => [documentValidation],
   // ...all other settings
 })
 ```
