@@ -4,6 +4,8 @@ Task assignment and management for Sanity documents.
 
 Note: This is a Sanity Studio v3-exclusive plugin.
 
+![Task management interface in Studio](./img/sanity-plugin-tasks.png)
+
 ## Installation
 
 ```
@@ -49,6 +51,22 @@ export const defaultDocumentNode: DefaultDocumentNodeResolver = (S, {schemaType}
       return S.document().views([S.view.form()])
   }
 }
+```
+
+Now you can see and create Tasks alongside documents. But to enforce completion before publishing, you'll need to import a Validation rule.
+
+```js
+// ./schema/article.ts
+import {defineType} from 'sanity'
+import {documentValidation} from 'sanity-plugin-tasks'
+
+export default defineType({
+  name: 'article',
+  title: 'Article',
+  type: 'document',
+  validation: (Rule: Rule) => [documentValidation],
+  // ...all other settings
+})
 ```
 
 ## License
