@@ -13,6 +13,7 @@ import UserAssignmentMenu from './UserAssignmentMenu'
 type TaskItemProps = Task & {
   documentId: string
   userList: User[]
+  user?: User | null
 }
 
 // Make unassigned user button a little smaller
@@ -37,10 +38,10 @@ const TASK_DEFAULTS = {
 }
 
 export default function TaskItem(props: TaskItemProps) {
-  const isNewTask = props?._key
+  const isNewTask = !props?._key
   const {_key, _type, documentId, complete, due, userList} = {
     ...TASK_DEFAULTS,
-    // @ts-ignore: Overriding _key is deliberate
+    // @ts-ignore: Potentially overriding _key is deliberate
     _key: uuid().split(`-`).pop(),
     ...props,
   }
@@ -48,18 +49,17 @@ export default function TaskItem(props: TaskItemProps) {
   const taskId = `task.${documentId}`
 
   const client = useClient()
-
   const input = useRef<HTMLInputElement>()
 
   // Tracked in local state for creating new items
   const [title, setTitle] = useState(props?.title ?? ``)
-  const [userId, setUserId] = useState(props?.userId ?? ``)
+  const [user, setUser] = useState<User | null>(props?.user ?? null)
 
   // Update local state when props change (new task is saved)
   useEffect(() => {
     setTitle(props?.title ?? ``)
-    setUserId(props?.userId ?? ``)
-  }, [props.userId, props.title])
+    setUser(props?.user ?? ``)
+  }, [props.user, props.title])
 
   const [mutating, setMutating] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -73,6 +73,7 @@ export default function TaskItem(props: TaskItemProps) {
 
       event.preventDefault()
       setMutating(true)
+      const userId = user?.id ?? ``
 
       if (isNewTask) {
         const newTaskGroup = {
@@ -113,7 +114,7 @@ export default function TaskItem(props: TaskItemProps) {
           console.error(err)
         })
     },
-    [_key, _type, client, complete, documentId, isNewTask, props.title, taskId, title, userId]
+    [_key, _type, client, complete, documentId, isNewTask, props.title, taskId, title, user]
   )
 
   const handleToggle = useCallback(
@@ -151,7 +152,8 @@ export default function TaskItem(props: TaskItemProps) {
         if (input?.current) {
           input.current.focus()
         }
-        return setUserId(id)
+        const newUser = userList.find((u) => u.id === id) ?? null
+        return setUser(newUser)
       }
 
       return client
@@ -160,7 +162,6 @@ export default function TaskItem(props: TaskItemProps) {
         .commit()
         .then((res) => {
           setAvatarOpen(false)
-          console.log(res)
           return res
         })
         .catch((err) => {
@@ -168,7 +169,7 @@ export default function TaskItem(props: TaskItemProps) {
           return err
         })
     },
-    [_key, client, isNewTask, taskId]
+    [_key, client, isNewTask, taskId, userList]
   )
 
   const onAssigneesClear = useCallback(() => {
@@ -177,7 +178,7 @@ export default function TaskItem(props: TaskItemProps) {
       if (input?.current) {
         input.current.focus()
       }
-      return setUserId(``)
+      return setUser(null)
     }
 
     return client
@@ -193,7 +194,7 @@ export default function TaskItem(props: TaskItemProps) {
 
   const onAssigneeRemove = useCallback(() => {
     if (isNewTask) {
-      return setUserId(``)
+      return setUser(null)
     }
 
     return client
@@ -227,7 +228,7 @@ export default function TaskItem(props: TaskItemProps) {
           tone="default"
           content={
             <UserAssignmentMenu
-              value={userId ? [userId] : []}
+              value={user?.id ? [user.id] : []}
               userList={userList}
               onAdd={onAssigneeAdd}
               onClear={onAssigneesClear}
@@ -247,9 +248,9 @@ export default function TaskItem(props: TaskItemProps) {
             mode="bleed"
             onClick={() => setAvatarOpen(!avatarOpen)}
           >
-            {userId ? (
+            {user?.id ? (
               <AvatarWrapper>
-                <UserAvatar size={1} user={userId} />
+                <UserAvatar size={1} user={user} />
               </AvatarWrapper>
             ) : (
               <NewAvatar initials="+" color="green" size={1} />

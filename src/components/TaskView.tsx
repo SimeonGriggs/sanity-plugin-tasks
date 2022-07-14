@@ -6,6 +6,7 @@ import {useProject} from 'sanity/_unstable'
 
 import type {Task, User, Filter, FilterCount} from '../types'
 import useListeningQuery from '../lib/hooks/useListeningQuery'
+import useProjectUsers from '../lib/hooks/useProjectUsers'
 import TaskItem from './TaskItem'
 
 type TaskViewProps = {
@@ -21,10 +22,8 @@ export default function TaskView(props: TaskViewProps) {
   const {documentId} = props
   const view = useRef<HTMLDivElement>()
 
-  const {members}: {members: User[] | any} = useProject()?.value || {
-    members: [],
-  }
-  const myUserId = members?.find((user: User) => user.isCurrentUser)?.id
+  const users = useProjectUsers()
+  const me = users.find((user) => user.isCurrentUser)
 
   const [currentFilter, setCurrentFilter] = useState<Filter>(FILTERS[0])
 
@@ -58,7 +57,7 @@ export default function TaskView(props: TaskViewProps) {
         width: 400,
         height: 400,
       }
-  const someTasksAreMine = tasks?.length ? tasks.some((task) => task.userId === myUserId) : false
+  const someTasksAreMine = tasks?.length ? tasks.some((task) => task.userId === me?.id) : false
 
   const defaultTaskCounts = {
     All: tasks?.length,
@@ -71,7 +70,7 @@ export default function TaskView(props: TaskViewProps) {
     ? tasks.reduce((acc: FilterCount, cur: Task) => {
         const currentCount = {...acc}
 
-        if (cur.userId === myUserId) currentCount.Mine += 1
+        if (cur.userId === me?.id) currentCount.Mine += 1
         if (!cur.userId) currentCount.Unassigned += 1
         if (cur.complete) currentCount.Complete += 1
         if (!cur.complete) currentCount.Incomplete += 1
@@ -113,7 +112,7 @@ export default function TaskView(props: TaskViewProps) {
                 case 'All':
                   return true
                 case 'Mine':
-                  return task.userId === myUserId
+                  return task.userId === me?.id
                 case 'Unassigned':
                   return !task.userId
                 case 'Complete':
@@ -126,16 +125,17 @@ export default function TaskView(props: TaskViewProps) {
             })
             .map((task) => (
               <motion.div key={task._key} layout>
-                <TaskItem userList={members} documentId={documentId} {...task} />
+                <TaskItem
+                  user={users.find((u) => u.id === task.userId)}
+                  userList={users}
+                  documentId={documentId}
+                  {...task}
+                />
               </motion.div>
             ))
         : null}
       <Card borderBottom>
-        <TaskItem
-          userList={members}
-          documentId={documentId}
-          userId={currentFilter === 'Mine' ? myUserId : undefined}
-        />
+        <TaskItem user={me?.id ? me : null} userList={users} documentId={documentId} />
       </Card>
     </Stack>
   )
