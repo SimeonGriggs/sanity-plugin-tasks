@@ -1,12 +1,10 @@
 import React, {useRef, useState} from 'react'
 import {Box, Text, Flex, Inline, Button, Spinner, Stack, Card} from '@sanity/ui'
 import {motion} from 'framer-motion'
-import {useProject} from 'sanity/_unstable'
-// import Confetti from 'react-confetti'
 
-import type {Task, User, Filter, FilterCount} from '../types'
-import useListeningQuery from '../lib/hooks/useListeningQuery'
-import useProjectUsers from '../lib/hooks/useProjectUsers'
+import type {Task, Filter, FilterCount} from '../types'
+import useListeningQuery from '../hooks/useListeningQuery'
+import useProjectUsers from '../hooks/useProjectUsers'
 import TaskItem from './TaskItem'
 
 type TaskViewProps = {
@@ -29,10 +27,9 @@ export default function TaskView(props: TaskViewProps) {
 
   const taskId = `task.${documentId}`
   const query = `*[_id == $taskId][0].tasks|order(complete)`
-  const {data, loading, error} = useListeningQuery(query, {taskId})
-  const tasks: Task[] = data
+  const {data: tasks, loading, error} = useListeningQuery<Task[]>(query, {taskId})
 
-  const [openUserKey, setOpenUserKey] = useState(``)
+  const [openTaskKey, setOpenTaskKey] = useState(``)
 
   if (loading) {
     return (
@@ -51,12 +48,6 @@ export default function TaskView(props: TaskViewProps) {
   }
 
   const allTasksAreComplete = tasks?.length ? tasks.every((task) => task.complete) : false
-  const {width, height} = view?.current
-    ? view.current.getBoundingClientRect()
-    : {
-        width: 400,
-        height: 400,
-      }
   const someTasksAreMine = tasks?.length ? tasks.some((task) => task.userId === me?.id) : false
 
   const defaultTaskCounts = {
@@ -66,6 +57,7 @@ export default function TaskView(props: TaskViewProps) {
     Complete: 0,
     Incomplete: 0,
   }
+
   const taskCounts: FilterCount = tasks?.length
     ? tasks.reduce((acc: FilterCount, cur: Task) => {
         const currentCount = {...acc}
@@ -82,7 +74,6 @@ export default function TaskView(props: TaskViewProps) {
   return (
     // @ts-ignore TODO: Satisfy ref
     <Stack padding={4} space={0} ref={view}>
-      {/* {allTasksAreComplete ? <Confetti width={width} height={height} /> : null} */}
       <Card marginBottom={2}>
         <Inline space={1}>
           {FILTERS.map((filter) => (
@@ -103,7 +94,6 @@ export default function TaskView(props: TaskViewProps) {
           ))}
         </Inline>
       </Card>
-
       <Box paddingBottom={2} />
       {tasks?.length > 0
         ? tasks
@@ -126,6 +116,9 @@ export default function TaskView(props: TaskViewProps) {
             .map((task) => (
               <motion.div key={task._key} layout>
                 <TaskItem
+                  onUserAssignmentOpen={() => (task._key ? setOpenTaskKey(task._key) : null)}
+                  onUserAssignmentClose={() => setOpenTaskKey(``)}
+                  userAssignmentOpen={openTaskKey === task._key}
                   user={users.find((u) => u.id === task.userId)}
                   userList={users}
                   documentId={documentId}
@@ -135,7 +128,14 @@ export default function TaskView(props: TaskViewProps) {
             ))
         : null}
       <Card borderBottom>
-        <TaskItem user={me?.id ? me : null} userList={users} documentId={documentId} />
+        <TaskItem
+          onUserAssignmentOpen={() => setOpenTaskKey(`__NEW__`)}
+          onUserAssignmentClose={() => setOpenTaskKey(``)}
+          userAssignmentOpen={openTaskKey === `__NEW__`}
+          user={currentFilter === 'Mine' && me?.id ? me : null}
+          userList={users}
+          documentId={documentId}
+        />
       </Card>
     </Stack>
   )

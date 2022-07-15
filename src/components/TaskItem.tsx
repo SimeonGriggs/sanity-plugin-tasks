@@ -1,45 +1,44 @@
 import React, {FocusEvent, useState, useCallback, useRef, useEffect} from 'react'
-import {Button, TextInput, Label, Box, Avatar, Popover, Flex, Card, CardTone} from '@sanity/ui'
+import {Button, TextInput, Label, Box, Popover, Flex, Card, CardTone} from '@sanity/ui'
 import {TrashIcon, CheckmarkCircleIcon, CircleIcon} from '@sanity/icons'
-import {formatRelative} from 'date-fns'
+import {formatRelative, isPast} from 'date-fns'
 import {useClient} from 'sanity'
 import {UserAvatar} from 'sanity/_unstable'
 import {uuid} from '@sanity/uuid'
-import styled from 'styled-components'
 
 import type {User, Task} from '../types'
 import UserAssignmentMenu from './UserAssignmentMenu'
+import {NewAvatar, AvatarWrapper, CircleButton} from './StyledComponents'
+import {useMemo} from 'react'
 
 type TaskItemProps = Task & {
+  onUserAssignmentOpen: () => void
+  onUserAssignmentClose: () => void
+  userAssignmentOpen: boolean
   documentId: string
   userList: User[]
   user?: User | null
 }
 
-// Make unassigned user button a little smaller
-const NewAvatar = styled(Avatar)`
-  opacity: 0.75;
-  transform: scale(0.55);
-`
-
-// Required to avoid layout shift as image loads in
-const AvatarWrapper = styled(Box)`
-  width: 35px;
-  height: 35px;
-`
-
-const CircleButton = styled(Button)`
-  border-radius: 50%;
-`
-
 const TASK_DEFAULTS = {
   _type: 'task',
   complete: false,
+  userAssignmentOpen: false,
 }
 
 export default function TaskItem(props: TaskItemProps) {
   const isNewTask = !props?._key
-  const {_key, _type, documentId, complete, due, userList} = {
+  const {
+    _key,
+    _type,
+    documentId,
+    complete,
+    due,
+    userList,
+    onUserAssignmentOpen,
+    onUserAssignmentClose,
+    userAssignmentOpen,
+  } = {
     ...TASK_DEFAULTS,
     // @ts-ignore: Potentially overriding _key is deliberate
     _key: uuid().split(`-`).pop(),
@@ -59,11 +58,11 @@ export default function TaskItem(props: TaskItemProps) {
   useEffect(() => {
     setTitle(props?.title ?? ``)
     setUser(props?.user ?? null)
+    onUserAssignmentClose()
   }, [props.user, props.title])
 
   const [mutating, setMutating] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [avatarOpen, setAvatarOpen] = useState(false)
 
   const handleUpdate = useCallback(
     async (event: FocusEvent<HTMLInputElement> | React.SyntheticEvent) => {
@@ -71,6 +70,7 @@ export default function TaskItem(props: TaskItemProps) {
         return null
       }
 
+      onUserAssignmentClose()
       event.preventDefault()
       setMutating(true)
       const userId = user?.id ?? ``
@@ -80,7 +80,6 @@ export default function TaskItem(props: TaskItemProps) {
           _id: taskId,
           _type: `sanity.taskGroup`,
           documentId,
-          userId,
         }
 
         await client.createIfNotExists(newTaskGroup)
@@ -133,6 +132,7 @@ export default function TaskItem(props: TaskItemProps) {
 
   const handleDelete = useCallback(() => {
     setDeleting(true)
+    onUserAssignmentClose()
 
     return client
       .patch(taskId)
@@ -147,8 +147,9 @@ export default function TaskItem(props: TaskItemProps) {
 
   const onAssigneeAdd = useCallback(
     (id: string) => {
+      onUserAssignmentClose()
+
       if (isNewTask) {
-        setAvatarOpen(false)
         if (input?.current) {
           input.current.focus()
         }
@@ -161,7 +162,6 @@ export default function TaskItem(props: TaskItemProps) {
         .set({[`tasks[_key == "${_key}"].userId`]: id})
         .commit()
         .then((res) => {
-          setAvatarOpen(false)
           return res
         })
         .catch((err) => {
@@ -174,7 +174,7 @@ export default function TaskItem(props: TaskItemProps) {
 
   const onAssigneesClear = useCallback(() => {
     if (isNewTask) {
-      setAvatarOpen(false)
+      onUserAssignmentClose()
       if (input?.current) {
         input.current.focus()
       }
@@ -214,12 +214,17 @@ export default function TaskItem(props: TaskItemProps) {
     }
   }, [input, isNewTask])
 
-  let tone: CardTone = `default`
-  if (deleting) {
-    tone = `critical`
-  } else if (complete) {
-    tone = `positive`
-  }
+  const tone: CardTone = useMemo(() => {
+    if (deleting) {
+      return `critical`
+    } else if (complete) {
+      return `positive`
+    } else if (due && isPast(new Date(due))) {
+      return `caution`
+    }
+
+    return `default`
+  }, [complete, deleting, due])
 
   return (
     <Card tone={tone} borderTop paddingY={1}>
@@ -233,20 +238,19 @@ export default function TaskItem(props: TaskItemProps) {
               onAdd={onAssigneeAdd}
               onClear={onAssigneesClear}
               onRemove={onAssigneeRemove}
-              open={avatarOpen}
+              open={userAssignmentOpen}
             />
           }
           padding={0}
-          portal
           placement="right"
-          open={avatarOpen}
+          open={userAssignmentOpen}
           disabled={mutating || deleting}
         >
           <CircleButton
             disabled={mutating || deleting}
             padding={1}
             mode="bleed"
-            onClick={() => setAvatarOpen(!avatarOpen)}
+            onClick={() => onUserAssignmentOpen()}
           >
             {user?.id ? (
               <AvatarWrapper>
@@ -293,7 +297,7 @@ export default function TaskItem(props: TaskItemProps) {
         </Box>
 
         {due ? (
-          <Label size={0} muted>
+          <Label size={1} muted>
             {formatRelative(new Date(due), new Date())}
           </Label>
         ) : null}

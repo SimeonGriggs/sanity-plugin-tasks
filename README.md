@@ -61,14 +61,14 @@ Now you can see and create Tasks alongside documents. But to enforce completion 
 
 ```ts
 // ./schema/article.ts
-import {defineType} from 'sanity'
+import {defineType, Rule} from 'sanity'
 import {documentValidation} from 'sanity-plugin-tasks'
 
 export default defineType({
   name: 'article',
   title: 'Article',
   type: 'document',
-  validation: () => [documentValidation],
+  validation: (R: Rule) => [documentValidation(R)],
   // ...all other settings
 })
 ```

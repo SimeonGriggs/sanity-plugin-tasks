@@ -39,6 +39,7 @@ export default function UserAssignmentMenu(props: UserAssignmentMenuProps) {
   const meAssigned = me && value.includes(me.id)
 
   // Focus input on open
+  // TODO: Fix focus, it gets immediately taken away
   const input = useRef<HTMLInputElement>()
   useEffect(() => {
     if (open && input?.current) {

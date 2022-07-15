@@ -1,6 +1,6 @@
 {
   "name": "sanity-plugin-tasks",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Task assignment and management for Sanity documents",
   "author": "Simeon Griggs <simeon@sanity.io>",
   "license": "MIT",
@@ -45,7 +45,6 @@
     "@types/styled-components": "^5.1.25",
     "date-fns": "^2.28.0",
     "framer-motion": "^6.5.1",
-    "react-confetti": "^6.1.0",
     "react-fast-compare": "^3.2.0",
     "rxjs": "^7.5.6",
     "styled-components": "^5.3.5"
